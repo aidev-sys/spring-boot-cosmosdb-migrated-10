@@ -6,6 +6,7 @@ import com.dev.safranys.modeles.User;
 import com.dev.safranys.repositories.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.repository.CrudRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -13,10 +14,13 @@ import java.util.stream.Collectors;
 
 @Service
 public class UserService {
+
     private final UserRepository userRepository;
+    private final CrudRepository<User, String> crudRepo;
 
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
+        this.crudRepo = (CrudRepository<User, String>) userRepository;
     }
 
     /**
@@ -25,24 +29,24 @@ public class UserService {
     @Transactional
     public User saveUser(UserDto userDto) {
         User newUser = new User(
-                null,                 // let the record generate a UUID if null
+                null,
                 userDto.email(),
                 userDto.firstName(),
                 userDto.lastName(),
                 userDto.age(),
                 userDto.city()
         );
-        return userRepository.save(newUser);
+        return crudRepo.save(newUser);
     }
 
     /**
      * Updates the existing User with new values (full update).
      */
     @Transactional
-    public User updateUser(String userId, UserDto userDto) {
-        Optional<User> optionalUser = userRepository.findById(userId);
+    public Optional<User> updateUser(String userId, UserDto userDto) {
+        Optional<User> optionalUser = crudRepo.findById(userId);
         if (optionalUser.isEmpty()) {
-            throw new UserNotFoundException("No user found for id: " + userId);
+            return Optional.empty();
         }
         User existingUser = optionalUser.get();
         User updatedUser = new User(
@@ -53,29 +57,31 @@ public class UserService {
                 userDto.age(),
                 userDto.city()
         );
-        return userRepository.save(updatedUser);
+        User saved = crudRepo.save(updatedUser);
+        return Optional.of(saved);
     }
 
     @Transactional
     public void deleteUserById(String userId) {
-        Optional<User> optionalUser = userRepository.findById(userId);
+        Optional<User> optionalUser = crudRepo.findById(userId);
         if (optionalUser.isEmpty()) {
             throw new UserNotFoundException("No user found for id: " + userId);
         }
-        userRepository.delete(optionalUser.get());
+        crudRepo.delete(optionalUser.get());
     }
 
     public List<User> getAllUsers() {
-        return userRepository.findAll();
+        return crudRepo.findAll()
+                .stream()
+                .collect(Collectors.toList());
     }
 
-    public User getUserById(String id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("No user found for id: " + id));
+    public Optional<User> getUserById(String id) {
+        return crudRepo.findById(id);
     }
 
     public List<String> getUserIds() {
-        return userRepository.findAll()
+        return crudRepo.findAll()
                 .stream()
                 .map(User::getId)
                 .collect(Collectors.toList());
