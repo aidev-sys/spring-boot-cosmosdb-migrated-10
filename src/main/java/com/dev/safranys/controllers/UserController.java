@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping(path = "/users")
@@ -43,11 +44,14 @@ public class UserController {
             @PathVariable("id") String id,
             @Valid @RequestBody UserDto userDto) {
         try {
-            User updated = userService.updateUser(id, userDto);
-            return ResponseEntity.ok(updated);
+            Optional<User> updatedOpt = userService.updateUser(id, userDto);
+            if (updatedOpt.isPresent()) {
+                return ResponseEntity.ok(updatedOpt.get());
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+            }
         } catch (UserNotFoundException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(null);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -81,8 +85,12 @@ public class UserController {
     public ResponseEntity<User> getUserBy(@PathVariable("id") String id) {
         System.out.println("get user by id...");
         try {
-            User user = userService.getUserById(id);
-            return ResponseEntity.ok(user);
+            Optional<User> userOpt = userService.getUserById(id);
+            if (userOpt.isPresent()) {
+                return ResponseEntity.ok(userOpt.get());
+            } else {
+                return ResponseEntity.notFound().build();
+            }
         } catch (UserNotFoundException ex) {
             return ResponseEntity.notFound().build();
         } catch (Exception ex) {

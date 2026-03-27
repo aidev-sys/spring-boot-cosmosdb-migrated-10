@@ -6,21 +6,17 @@ import com.dev.safranys.modeles.User;
 import com.dev.safranys.repositories.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.data.repository.CrudRepository;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
-    private final CrudRepository<User, String> crudRepo;
 
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
-        this.crudRepo = (CrudRepository<User, String>) userRepository;
     }
 
     /**
@@ -36,7 +32,7 @@ public class UserService {
                 userDto.age(),
                 userDto.city()
         );
-        return crudRepo.save(newUser);
+        return userRepository.save(newUser);
     }
 
     /**
@@ -44,7 +40,7 @@ public class UserService {
      */
     @Transactional
     public Optional<User> updateUser(String userId, UserDto userDto) {
-        Optional<User> optionalUser = crudRepo.findById(userId);
+        Optional<User> optionalUser = userRepository.findById(userId);
         if (optionalUser.isEmpty()) {
             return Optional.empty();
         }
@@ -57,33 +53,28 @@ public class UserService {
                 userDto.age(),
                 userDto.city()
         );
-        User saved = crudRepo.save(updatedUser);
+        User saved = userRepository.save(updatedUser);
         return Optional.of(saved);
     }
 
     @Transactional
     public void deleteUserById(String userId) {
-        Optional<User> optionalUser = crudRepo.findById(userId);
+        Optional<User> optionalUser = userRepository.findById(userId);
         if (optionalUser.isEmpty()) {
             throw new UserNotFoundException("No user found for id: " + userId);
         }
-        crudRepo.delete(optionalUser.get());
+        userRepository.delete(optionalUser.get());
     }
 
     public List<User> getAllUsers() {
-        return crudRepo.findAll()
-                .stream()
-                .collect(Collectors.toList());
+        return userRepository.findAll();
     }
 
     public Optional<User> getUserById(String id) {
-        return crudRepo.findById(id);
+        return userRepository.findById(id);
     }
 
     public List<String> getUserIds() {
-        return crudRepo.findAll()
-                .stream()
-                .map(User::getId)
-                .collect(Collectors.toList());
+        return userRepository.getUserIds();
     }
 }
