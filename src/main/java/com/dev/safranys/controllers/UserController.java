@@ -9,16 +9,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
-@Controller
+@RestController
 @RequestMapping(path = "/users")
 public class UserController {
 
@@ -29,66 +27,76 @@ public class UserController {
 
     // Create new user
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<User>> createUser(@RequestBody UserDto userDto) {
+    public ResponseEntity<User> createUser(@RequestBody UserDto userDto) {
         System.out.println("add user: " + userDto);
-
-        return userService.saveUser(userDto)
-                .map(savedUser -> ResponseEntity.status(HttpStatus.CREATED).body(savedUser))
-                // Optionally handle errors:
-                .onErrorResume(e -> {
-                    System.err.println("Error creating user: " + e.getMessage());
-                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .body(null));
-                });
+        try {
+            User savedUser = userService.saveUser(userDto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
+        } catch (Exception e) {
+            System.err.println("Error creating user: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @PutMapping("/{id}")
-    public Mono<ResponseEntity<User>> updateUser(
+    public ResponseEntity<User> updateUser(
             @PathVariable("id") String id,
             @Valid @RequestBody UserDto userDto
     ) {
-        return userService.updateUser(id, userDto)
-                .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.notFound().build());
+        try {
+            Optional<User> updated = userService.updateUser(id, userDto);
+            return updated.map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @DeleteMapping("/{id}")
-    public Mono<ResponseEntity<Object>> deleteUserById(@PathVariable("id") String id) {
-        return userService.deleteUserById(id)
-                .then(Mono.just(ResponseEntity.noContent().build()))
-                .onErrorResume(UserNotFoundException.class, ex ->
-                        Mono.just(
-                                ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                        .body(Map.of("error", ex.getMessage()))
-                        )
-                );
+    public ResponseEntity<Object> deleteUserById(@PathVariable("id") String id) {
+        try {
+            userService.deleteUserById(id);
+            return ResponseEntity.noContent().build();
+        } catch (UserNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", ex.getMessage()));
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public Flux<User> getAllUsers() {
+    public List<User> getAllUsers() {
         System.out.println("listing all users...");
-        return userService.getAllUsers();
+        try {
+            return userService.getAllUsers();
+        } catch (Exception e) {
+            System.err.println("Error retrieving users: " + e.getMessage());
+            return Collections.emptyList();
+        }
     }
 
-    @GetMapping(value = "/{id}",produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<User>> getUserBy(@PathVariable("id") String id) {
+    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<User> getUserBy(@PathVariable("id") String id) {
         System.out.println("get user by id...");
 
-        return userService.getUserById(id)
-                .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.notFound().build())
-                .onErrorResume(Exception.class, ex -> {
-                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
-                });
+        try {
+            Optional<User> userOpt = userService.getUserById(id);
+            return userOpt.map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.notFound().build());
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @GetMapping(value = "/user-ids", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<List<String>>> getUserIds() {
-        return userService.getUserIds()
-                .map(ResponseEntity::ok)
-                .onErrorResume(Exception.class, ex -> {
-                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .body(Collections.emptyList()));
-                });
+    public ResponseEntity<List<String>> getUserIds() {
+        try {
+            List<String> ids = userService.getUserIds();
+            return ResponseEntity.ok(ids);
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Collections.emptyList());
+        }
     }
 }

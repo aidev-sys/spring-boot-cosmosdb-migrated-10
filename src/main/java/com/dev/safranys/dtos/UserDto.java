@@ -19,4 +19,3 @@ public record UserDto(
         @NotBlank
         String city
 ) {}
-

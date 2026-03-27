@@ -1,9 +1,10 @@
 package com.dev.safranys.repositories;
 
 import com.dev.safranys.modeles.User;
-import reactor.core.publisher.Mono;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
-public interface CustomUserRepository {
-    Mono<User> saveUser(User user);
+@Repository
+public interface CustomUserRepository extends JpaRepository<User, Long> {
+    User saveUser(User user);
 }
-

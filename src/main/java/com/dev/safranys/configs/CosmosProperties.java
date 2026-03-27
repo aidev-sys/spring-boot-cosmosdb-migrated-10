@@ -2,25 +2,34 @@ package com.dev.safranys.configs;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "azure.cosmos")
+@ConfigurationProperties(prefix = "spring.datasource")
 public class CosmosProperties {
 
-    private String connectionString;
-    private String database; // Separate property for database name
+    private String url;
+    private String username;
+    private String password;
 
-    public String getConnectionString() {
-        return connectionString;
+    public String getUrl() {
+        return url;
     }
 
-    public void setConnectionString(String connectionString) {
-        this.connectionString = connectionString;
+    public void setUrl(String url) {
+        this.url = url;
     }
 
-    public String getDatabase() {
-        return database;
+    public String getUsername() {
+        return username;
     }
 
-    public void setDatabase(String database) {
-        this.database = database;
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 }
